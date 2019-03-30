@@ -2,6 +2,7 @@
 from django.shortcuts import render
 from models import *
 from django.core.paginator import Paginator
+from django.http import response
 
 
 def index(request):
@@ -39,9 +40,28 @@ def detail(request, id):
                'news': news,
                'title': goods.gtype.ttitle
                }
-    return render(request, 'df_goods/detail.html', context)
+    response = render(request, 'df_goods/detail.html', context)
+
+    # 记录最近浏览在用户中心使用
+    goods_ids = request.COOKIES.get('goods_ids', '')
+    goods_id = '%d'%goods.id
+    # print(goods_id)
+    if goods_ids != '':
+        goods_ids1 = goods_ids.split(',')  # 拆分为列表
+        if goods_ids1.count(goods_id) >= 1:
+            goods_ids1.remove(goods_id)
+        goods_ids1.insert(0, goods_id)
+        if len(goods_ids1) >= 6:
+            del goods_ids1[5]
+        goods_ids =','.join(goods_ids1)
+    else:
+        goods_ids = goods_id
+    response.set_cookie('goods_ids', goods_ids)
+
+    return response
 
 
+# 列表页，3个参数（id， 页码， 根据人气，点击量等分类）
 def list(request, tid, pindex, sort):
     typeinfo = TypeInfo.objects.get(pk=int(tid))
     news = typeinfo.goodsinfo_set.order_by('id')[0:2]
